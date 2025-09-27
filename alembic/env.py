@@ -8,7 +8,7 @@ import sys
 # 添加项目根目录到Python路径
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from database import Base
+from tools.database.database import Base
 from config import settings
 
 # this is the Alembic Config object, which provides

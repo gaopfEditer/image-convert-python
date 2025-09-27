@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from fastapi.responses import RedirectResponse, HTMLResponse
 from sqlalchemy.orm import Session
-from database import get_db
+from tools.database.database import get_db
 from schemas import WeChatLoginRequest, WeChatLoginResponse, WeChatLoginStatusResponse, Token, UserResponse
 from services.wechat_auth_service import WeChatAuthService
 from auth import create_access_token

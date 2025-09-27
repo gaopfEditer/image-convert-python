@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
-from database import get_db
+from tools.database.database import get_db
 from schemas import ImageConvertRequest, ConversionRecordResponse, MessageResponse, UsageStatsResponse
 from services.image_service import ImageService
 from services.permission_service import PermissionService
