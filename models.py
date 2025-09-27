@@ -48,7 +48,7 @@ class ConversionRecord(Base):
     __tablename__ = "conversion_records"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # 允许为空，支持公开接口
     original_filename = Column(String(255), nullable=False)
     original_format = Column(String(10), nullable=False)
     target_format = Column(String(10), nullable=False)

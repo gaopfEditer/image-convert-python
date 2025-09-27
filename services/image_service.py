@@ -14,7 +14,7 @@ class ImageService:
     def convert_image(self, 
                      file_path: str, 
                      target_format: str, 
-                     user_id: int,
+                     user_id: Optional[int],
                      convert_request: ImageConvertRequest) -> Tuple[bool, str, Optional[str]]:
         """
         转换图片格式
@@ -40,13 +40,13 @@ class ImageService:
                 if convert_request.resize:
                     width = convert_request.resize.get('width')
                     height = convert_request.resize.get('height')
-                    if width and height:
+                    if width and height and width > 0 and height > 0:
                         img = img.resize((width, height), Image.Resampling.LANCZOS)
-                    elif width:
+                    elif width and width > 0:
                         ratio = width / img.width
                         height = int(img.height * ratio)
                         img = img.resize((width, height), Image.Resampling.LANCZOS)
-                    elif height:
+                    elif height and height > 0:
                         ratio = height / img.height
                         width = int(img.width * ratio)
                         img = img.resize((width, height), Image.Resampling.LANCZOS)
@@ -155,7 +155,7 @@ class ImageService:
         return img
     
     def _record_conversion(self, 
-                          user_id: int,
+                          user_id: Optional[int],
                           original_filename: str,
                           original_format: str,
                           target_format: str,
@@ -164,6 +164,10 @@ class ImageService:
                           status: str,
                           error_message: Optional[str] = None):
         """记录转换记录"""
+        # 如果user_id为None，跳过记录（公开接口不需要记录到数据库）
+        if user_id is None:
+            return
+            
         conversion_record = ConversionRecord(
             user_id=user_id,
             original_filename=original_filename,
