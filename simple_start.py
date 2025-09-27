@@ -95,7 +95,38 @@ async def root():
 @app.get("/health", summary="健康检查")
 async def health_check():
     """健康检查接口"""
-    return {"status": "healthy", "message": "服务运行正常"}
+    import socket
+    import platform
+    from datetime import datetime
+    
+    try:
+        # 获取本机IP地址
+        hostname = socket.gethostname()
+        local_ip = socket.gethostbyname(hostname)
+        
+        # 获取外网IP（如果可能）
+        try:
+            import requests
+            external_ip = requests.get('https://api.ipify.org', timeout=3).text
+        except:
+            external_ip = "无法获取"
+            
+    except Exception as e:
+        local_ip = "无法获取"
+        external_ip = "无法获取"
+    
+    return {
+        "status": "healthy", 
+        "message": "服务运行正常",
+        "server_info": {
+            "hostname": hostname,
+            "local_ip": local_ip,
+            "external_ip": external_ip,
+            "platform": platform.system(),
+            "python_version": platform.python_version(),
+            "timestamp": datetime.now().isoformat()
+        }
+    }
 
 # 全局异常处理
 @app.exception_handler(404)
