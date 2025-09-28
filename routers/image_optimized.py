@@ -3,7 +3,7 @@ from typing import Optional
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from tools.database.database import get_db
-from schemas import ImageConvertRequest, ConversionRecordResponse, MessageResponse, UsageStatsResponse
+from schemas import ImageConvertRequest, ConversionRecordResponse, MessageResponse, UsageStatsResponse, ImageConversionResponse, ImageInfo
 from services.image_service import ImageService
 from services.permission_service import PermissionService
 from services.user_service import UserService
@@ -77,19 +77,23 @@ async def preview_image(filename: str):
 
 @router.get("/download/{filename}", summary="下载图片")
 async def download_image(filename: str):
-    """下载图片 - 公开接口"""
-    # 构建文件路径
+    """下载转换后的图片"""
+    # 尝试在converted目录中查找
     file_path = os.path.join(settings.upload_dir, "converted", filename)
     
     if not os.path.exists(file_path):
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="图片不存在"
-        )
+        # 如果converted目录中没有，尝试在uploads目录中查找
+        file_path = os.path.join(settings.upload_dir, "uploads", filename)
+        
+        if not os.path.exists(file_path):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="图片不存在"
+            )
     
     return FileResponse(file_path, filename=filename)
 
-@router.post("/compress", summary="压缩图片")
+@router.post("/compress", summary="压缩图片", response_model=ImageConversionResponse)
 async def compress_image(
     file: UploadFile = File(...),
     quality: int = Form(80),
@@ -202,35 +206,57 @@ async def compress_image(
         filename = f"compressed_{file.filename.split('.')[0]}.{file_extension}"
         file_url = f"/static/converted/{os.path.basename(output_path)}"
         
-        # 返回压缩结果信息
-        return {
-            "success": True,
-            "message": "压缩成功",
-            "file_url": file_url,
-            "filename": filename,
-            "original_size": original_size,
-            "compressed_size": compressed_size,
-            "compression_ratio": round(compression_ratio, 2),
-            "quality": quality,
-            "original_dimensions": {
-                "width": original_width,
-                "height": original_height
+        # 构建响应数据
+        
+        base_url = "http://localhost:8000"
+        download_url = f"{base_url}/api/image/download/{os.path.basename(output_path)}"
+        
+        response_data = ImageConversionResponse(
+            success=True,
+            message="压缩成功",
+            original_image=ImageInfo(
+                filename=file.filename,
+                format=file_extension.upper(),
+                width=original_width,
+                height=original_height,
+                file_size=original_size,
+                url=f"{base_url}/static/uploads/{os.path.basename(upload_path)}"
+            ),
+            converted_image=ImageInfo(
+                filename=filename,
+                format=file_extension.upper(),
+                width=final_width,
+                height=final_height,
+                file_size=compressed_size,
+                url=f"{base_url}{file_url}"
+            ),
+            processing_params={
+                "quality": quality,
+                "resize_width": resize_width if resize_width > 0 else None,
+                "resize_height": resize_height if resize_height > 0 else None,
+                "max_width": maxWidth if maxWidth > 0 else None,
+                "max_height": maxHeight if maxHeight > 0 else None,
+                "watermark": False
             },
-            "final_dimensions": {
-                "width": final_width,
-                "height": final_height
+            conversion_stats={
+                "compression_ratio": f"{compression_ratio:.1f}%",
+                "size_reduction": f"{original_size - compressed_size} bytes",
+                "original_size": f"{original_width}x{original_height}",
+                "converted_size": f"{final_width}x{final_height}",
+                "size_changed": original_size != compressed_size,
+                "dimensions_changed": (original_width, original_height) != (final_width, final_height)
             },
-            "format": file_extension.upper(),
-            "size_changed": original_size != compressed_size,
-            "dimensions_changed": (original_width, original_height) != (final_width, final_height)
-        }
+            download_url=download_url
+        )
+        
+        return response_data
         
     finally:
         # 清理上传的临时文件
         if os.path.exists(upload_path):
             os.remove(upload_path)
 
-@router.post("/convert", summary="转换图片格式")
+@router.post("/convert", summary="转换图片格式", response_model=ImageConversionResponse)
 async def convert_image(
     file: UploadFile = File(...),
     target_format: str = Form(...),
@@ -295,12 +321,71 @@ async def convert_image(
                 detail=f"转换失败: {error_message}"
             )
         
-        # 返回转换后的文件
-        return FileResponse(
-            output_path,
-            media_type=f"image/{target_format.lower()}",
-            filename=f"converted_{file.filename.split('.')[0]}.{target_format.lower()}"
+        # 获取图片信息
+        from PIL import Image
+        import os
+        
+        # 获取原图信息
+        with Image.open(upload_path) as original_img:
+            original_width, original_height = original_img.size
+            original_format = original_img.format
+            original_size = os.path.getsize(upload_path)
+        
+        # 获取转换后图片信息
+        with Image.open(output_path) as converted_img:
+            converted_width, converted_height = converted_img.size
+            converted_size = os.path.getsize(output_path)
+        
+        # 计算压缩比例
+        compression_ratio = ((original_size - converted_size) / original_size * 100) if original_size > 0 else 0
+        
+        # 生成文件名
+        original_filename = file.filename
+        converted_filename = f"converted_{original_filename.split('.')[0]}.{target_format.lower()}"
+        
+        # 生成访问URL
+        base_url = "http://localhost:8000"
+        converted_url = f"{base_url}/static/converted/{os.path.basename(output_path)}"
+        download_url = f"{base_url}/api/image/download/{os.path.basename(output_path)}"
+        
+        # 构建响应数据
+        
+        response_data = ImageConversionResponse(
+            success=True,
+            message="转换成功",
+            original_image=ImageInfo(
+                filename=original_filename,
+                format=original_format or file_extension.upper(),
+                width=original_width,
+                height=original_height,
+                file_size=original_size,
+                url=f"{base_url}/static/uploads/{os.path.basename(upload_path)}"
+            ),
+            converted_image=ImageInfo(
+                filename=converted_filename,
+                format=target_format.upper(),
+                width=converted_width,
+                height=converted_height,
+                file_size=converted_size,
+                url=converted_url
+            ),
+            processing_params={
+                "target_format": target_format,
+                "quality": quality,
+                "resize_width": resize_width,
+                "resize_height": resize_height,
+                "watermark": watermark
+            },
+            conversion_stats={
+                "compression_ratio": f"{compression_ratio:.1f}%",
+                "size_reduction": f"{original_size - converted_size} bytes",
+                "original_size": f"{original_width}x{original_height}",
+                "converted_size": f"{converted_width}x{converted_height}"
+            },
+            download_url=download_url
         )
+        
+        return response_data
         
     finally:
         # 清理上传的临时文件

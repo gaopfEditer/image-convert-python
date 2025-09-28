@@ -22,6 +22,10 @@ class UserResponse(UserBase):
     wechat_nickname: Optional[str] = None
     wechat_avatar: Optional[str] = None
     is_wechat_user: bool = False
+    # Google字段已移除，使用Auth0替代
+    auth0_name: Optional[str] = None
+    auth0_picture: Optional[str] = None
+    is_auth0_user: bool = False
     created_at: datetime
     
     class Config:
@@ -44,6 +48,35 @@ class ConversionRecordBase(BaseModel):
 
 class ConversionRecordCreate(ConversionRecordBase):
     pass
+
+# 图片信息Schema
+class ImageInfo(BaseModel):
+    filename: str
+    format: str
+    width: int
+    height: int
+    file_size: int
+    url: str
+
+# 转换结果响应Schema
+class ImageConversionResponse(BaseModel):
+    success: bool = True
+    message: str = "转换成功"
+    
+    # 原图信息
+    original_image: ImageInfo
+    
+    # 转换后图片信息
+    converted_image: ImageInfo
+    
+    # 处理参数
+    processing_params: dict
+    
+    # 转换统计
+    conversion_stats: dict
+    
+    # 下载链接
+    download_url: str
 
 class ConversionRecordResponse(ConversionRecordBase):
     id: int
@@ -139,3 +172,36 @@ class WeChatLoginStatusResponse(BaseModel):
     status: str  # pending, success, failed
     message: str
     user: Optional[UserResponse] = None
+
+# Google登录相关Schema已移除，使用Auth0替代
+
+
+# Auth0登录相关Schema
+class Auth0LoginRequest(BaseModel):
+    state: Optional[str] = None
+
+class Auth0LoginResponse(BaseModel):
+    auth_url: str = ""
+    state: str = ""
+    access_token: str = ""
+    token_type: str = "bearer"
+    user: Optional[UserResponse] = None
+    message: str = ""
+
+class Auth0CallbackRequest(BaseModel):
+    code: str
+    state: str
+
+class Auth0LoginStatusResponse(BaseModel):
+    status: str  # pending, success, failed
+    message: str
+    user: Optional[UserResponse] = None
+
+# 智能登录相关Schema
+class SmartLoginResponse(BaseModel):
+    recommended_method: str  # wechat, auth0
+    location_info: dict
+    wechat_login_url: Optional[str] = None
+    auth0_login_url: Optional[str] = None
+    # google_login_url已移除，使用auth0_login_url替代
+    message: str

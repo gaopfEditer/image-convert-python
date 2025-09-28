@@ -36,6 +36,15 @@ class User(Base):
     wechat_avatar = Column(String(500), nullable=True)
     is_wechat_user = Column(Boolean, default=False)
     
+    # Google登录相关字段已移除，使用Auth0替代
+    
+    
+    # Auth0登录相关字段
+    auth0_id = Column(String(100), unique=True, index=True, nullable=True)
+    auth0_name = Column(String(100), nullable=True)
+    auth0_picture = Column(String(500), nullable=True)
+    is_auth0_user = Column(Boolean, default=False)
+    
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     

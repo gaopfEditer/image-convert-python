@@ -1,0 +1,1 @@
+https://gaopfediter.us.auth0.com/authorize?response_type=code&client_id=5xzUKrmwx7bFlUb9nf7l3C0Xp0q8AqcN&redirect_uri=https%3A%2F%2Fsubpredicative-jerrica-subtepidly.ngrok-free.dev%2Fapi%2Fauth%2Fauth0%2Fcallback&scope=openid+email+profile&state=test123

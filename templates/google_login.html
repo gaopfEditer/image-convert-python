@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google登录 - 图片转换服务</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .login-container {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+        .google-btn {
+            background-color: #4285f4;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 20px 0;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s ease;
+            min-width: 200px;
+        }
+        .google-btn:hover {
+            background-color: #357ae8;
+            transform: translateY(-2px);
+        }
+        .auth0-btn {
+            background-color: #eb5424;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 20px 0;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s ease;
+            min-width: 200px;
+        }
+        .auth0-btn:hover {
+            background-color: #d4441f;
+            transform: translateY(-2px);
+        }
+        .status {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 5px;
+            display: none;
+        }
+        .status.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .loading {
+            display: none;
+            margin: 20px 0;
+        }
+        .features {
+            text-align: left;
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+        }
+        .features h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .features ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        .features li {
+            margin: 5px 0;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <h2>🔐 Google账号登录</h2>
+        <p>使用您的Google账号快速登录图片转换服务</p>
+        
+        <div class="features">
+            <h3>✨ 登录优势</h3>
+            <ul>
+                <li>支持Google账号登录</li>
+                <li>无需注册，一键登录</li>
+                <li>安全可靠，数据加密</li>
+                <li>全球通用，无地域限制</li>
+            </ul>
+        </div>
+        
+        <div class="loading" id="loading">
+            <p>正在准备登录...</p>
+        </div>
+        
+        <div id="loginButtons">
+            <a href="#" class="auth0-btn" id="auth0Btn">
+                <span>🔐</span> Auth0登录（推荐）
+            </a>
+            <br>
+            <a href="#" class="google-btn" id="googleBtn">
+                <span>🔍</span> Google直接登录
+            </a>
+        </div>
+        
+        <div class="status" id="status"></div>
+        
+        <div style="margin-top: 30px;">
+            <a href="/login" style="color: #666; text-decoration: none;">← 返回智能登录</a>
+        </div>
+    </div>
+
+    <script>
+        let auth0Url = null;
+        let googleUrl = null;
+        
+        // 获取登录URL
+        async function loadLoginUrls() {
+            try {
+                document.getElementById('loading').style.display = 'block';
+                
+                // 获取Auth0登录URL
+                const auth0Response = await fetch('/api/auth/auth0/login');
+                const auth0Data = await auth0Response.json();
+                auth0Url = auth0Data.auth_url;
+                document.getElementById('auth0Btn').href = auth0Url;
+                
+                // 获取Google直接登录URL
+                const googleResponse = await fetch('/api/auth/google/login');
+                const googleData = await googleResponse.json();
+                googleUrl = googleData.auth_url;
+                document.getElementById('googleBtn').href = googleUrl;
+                
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('loginButtons').style.display = 'block';
+                
+            } catch (error) {
+                showStatus('加载登录选项失败: ' + error.message, 'error');
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+        
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = 'status ' + type;
+            statusDiv.style.display = 'block';
+        }
+        
+        // 页面加载时获取登录URL
+        loadLoginUrls();
+    </script>
+</body>
+</html>

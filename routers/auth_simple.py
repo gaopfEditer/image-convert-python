@@ -78,6 +78,12 @@ async def login(login_data: LoginRequest, db: Session = Depends(get_db)):
             "wechat_nickname": user.wechat_nickname,
             "wechat_avatar": user.wechat_avatar,
             "is_wechat_user": user.is_wechat_user,
+            "google_name": user.google_name,
+            "google_picture": user.google_picture,
+            "is_google_user": user.is_google_user,
+            "auth0_name": user.auth0_name,
+            "auth0_picture": user.auth0_picture,
+            "is_auth0_user": user.is_auth0_user,
             "created_at": user.created_at
         }
     }

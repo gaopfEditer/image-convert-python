@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-简化启动脚本 - 使用原有的路由结构
+本地开发启动脚本 - 支持localhost验证
 """
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -9,11 +9,12 @@ from fastapi.responses import HTMLResponse
 from contextlib import asynccontextmanager
 import os
 
+# 使用开发配置
+from config_dev import settings
 from tools.database.database import engine, Base
 from routers import payment
 from routers.auth_simple import router as auth_router
 from routers.image_optimized import router as image_router
-from config import settings
 import httpx
 
 # 创建数据库表
@@ -35,41 +36,21 @@ async def lifespan(app: FastAPI):
 
 # 创建FastAPI应用
 app = FastAPI(
-    title="图片转换服务API",
-    description="支持多种格式的图片转换服务，包含会员系统和支付功能",
-    version="1.0.0",
+    title="图片转换服务API - 开发版",
+    description="支持多种格式的图片转换服务，包含会员系统和支付功能 - 本地开发版本",
+    version="1.0.0-dev",
     lifespan=lifespan
 )
 
-# 添加CORS中间件
+# 添加CORS中间件 - 开发环境允许所有来源
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",  # React开发服务器
-        "http://localhost:8080",  # Vue开发服务器
-        "http://localhost:5173",  # Vite开发服务器
-        "http://127.0.0.1:3000",
-        "http://127.0.0.1:8080", 
-        "http://127.0.0.1:5173",
-        "http://localhost:8000",  # 同域
-        "http://127.0.0.1:8000",
-        "*"  # 开发环境允许所有来源
-    ],
+    allow_origins=["*"],  # 开发环境允许所有来源
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-    allow_headers=[
-        "Accept",
-        "Accept-Language",
-        "Content-Language",
-        "Content-Type",
-        "Authorization",
-        "X-Requested-With",
-        "Origin",
-        "Access-Control-Request-Method",
-        "Access-Control-Request-Headers",
-    ],
+    allow_headers=["*"],
     expose_headers=["*"],
-    max_age=3600,  # 预检请求缓存时间
+    max_age=3600,
 )
 
 # 静态文件服务
@@ -90,7 +71,6 @@ app.include_router(auth0_auth.router, prefix="/api")
 
 # Google登录已移除，使用Auth0替代
 
-
 # 导入智能登录路由
 from routers import smart_auth
 app.include_router(smart_auth.router, prefix="/api")
@@ -104,7 +84,7 @@ async def detect_ip_location(ip_address: str) -> dict:
             "region": "未知",
             "city": "未知",
             "is_china": False,
-            "login_method": "google"  # 默认使用Google登录
+            "login_method": "auth0"  # 默认使用Auth0登录
         }
     
     try:
@@ -128,7 +108,7 @@ async def detect_ip_location(ip_address: str) -> dict:
                     "region": data.get("regionName", "未知"),
                     "city": data.get("city", "未知"),
                     "is_china": is_china,
-                    "login_method": "wechat" if is_china else "google",
+                    "login_method": "wechat" if is_china else "auth0",
                     "timezone": data.get("timezone", ""),
                     "isp": data.get("isp", "")
                 }
@@ -161,7 +141,7 @@ async def detect_ip_location_fallback(ip_address: str) -> dict:
                     "region": data.get("region", "未知"),
                     "city": data.get("city", "未知"),
                     "is_china": is_china,
-                    "login_method": "wechat" if is_china else "google",
+                    "login_method": "wechat" if is_china else "auth0",
                     "timezone": data.get("timezone", ""),
                     "org": data.get("org", "")
                 }
@@ -175,17 +155,20 @@ async def detect_ip_location_fallback(ip_address: str) -> dict:
         "region": "未知",
         "city": "未知",
         "is_china": False,
-        "login_method": "google"
+        "login_method": "auth0"
     }
 
 @app.get("/", summary="API根路径")
 async def root():
     """API根路径"""
     return {
-        "message": "图片转换服务API",
-        "version": "1.0.0",
+        "message": "图片转换服务API - 开发版",
+        "version": "1.0.0-dev",
         "docs": "/docs",
-        "redoc": "/redoc"
+        "redoc": "/redoc",
+        "login": "/login",
+        "google_login": "/google-login",
+        "demo": "/demo"
     }
 
 @app.get("/login", response_class=HTMLResponse, summary="登录页面")
@@ -198,7 +181,7 @@ async def login_page():
     except FileNotFoundError:
         return HTMLResponse(content="<h1>登录页面未找到</h1>", status_code=404)
 
-@app.get("/login/success", response_class=HTMLResponse, summary="登录成功页面")
+@app.get("/google-login/success", response_class=HTMLResponse, summary="登录成功页面")
 async def login_success_page(
     token: str = None,
     user_id: int = None,
@@ -223,16 +206,6 @@ async def demo_page():
         return HTMLResponse(content=content)
     except FileNotFoundError:
         return HTMLResponse(content="<h1>演示页面未找到</h1>", status_code=404)
-
-@app.get("/google-login/success", response_class=HTMLResponse, summary="Google登录成功页面")
-async def google_login_success():
-    """Google登录成功页面"""
-    try:
-        with open("templates/google_login_success.html", "r", encoding="utf-8") as f:
-            content = f.read()
-        return HTMLResponse(content=content)
-    except FileNotFoundError:
-        return HTMLResponse(content="<h1>Google登录成功页面未找到</h1>", status_code=404)
 
 @app.get("/google-login", response_class=HTMLResponse, summary="Google登录页面")
 async def google_login_page():
@@ -276,6 +249,7 @@ async def health_check(
     return {
         "status": "healthy", 
         "message": "服务运行正常",
+        "environment": "development",
         "client_info": {
             "client_ip": client_ip,
             "host_id": host_id,
@@ -321,8 +295,16 @@ async def internal_error_handler(request, exc):
 
 if __name__ == "__main__":
     import uvicorn
+    print("🚀 启动开发服务器...")
+    print("📱 登录页面: http://localhost:8000/login")
+    print("🔐 Google登录: http://localhost:8000/google-login")
+    print("🧪 演示页面: http://localhost:8000/demo")
+    print("📚 API文档: http://localhost:8000/docs")
+    print("\n⚠️  注意: 本地开发需要配置Auth0支持localhost回调")
+    print("   在Auth0控制台添加: http://localhost:8000/api/auth/auth0/callback")
+    
     uvicorn.run(
-        "simple_start:app",
+        "dev_start:app",
         host="0.0.0.0",
         port=8000,
         reload=True,

@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录成功 - 图片转换服务</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .success-container {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+        }
+        .success-icon {
+            font-size: 48px;
+            color: #28a745;
+            margin-bottom: 20px;
+        }
+        .user-info {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            text-align: left;
+        }
+        .user-info h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .user-info p {
+            margin: 10px 0;
+            color: #666;
+        }
+        .token-info {
+            background-color: #e9ecef;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            word-break: break-all;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn:hover {
+            background-color: #0056b3;
+        }
+        .btn-success {
+            background-color: #28a745;
+        }
+        .btn-success:hover {
+            background-color: #218838;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .success-container {
+            display: none;
+        }
+        
+        .success-container.show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+        <div class="success-container">
+        <div class="success-icon">✓</div>
+        <h2>登录处理中...</h2>
+        <p>正在验证您的身份，请稍候...</p>
+        
+        <!-- 加载状态 -->
+        <div id="loadingStatus" style="margin: 20px 0;">
+            <div style="border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto;"></div>
+            <p id="loadingText">正在处理登录信息...</p>
+        </div>
+        
+        <!-- 错误信息 -->
+        <div id="errorInfo" style="display: none; background: #f8d7da; color: #721c24; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <strong>登录失败：</strong><span id="errorMessage"></span>
+        </div>
+        
+        <div class="user-info" id="userInfo">
+            <h3>用户信息</h3>
+            <p><strong>用户名：</strong><span id="username"></span></p>
+            <p><strong>邮箱：</strong><span id="email"></span></p>
+            <p><strong>登录方式：</strong><span id="loginMethod"></span></p>
+            <p><strong>用户ID：</strong><span id="userId"></span></p>
+        </div>
+        
+        <div class="token-info" id="tokenInfo" style="display: none;">
+            <strong>访问令牌：</strong><br>
+            <span id="token"></span>
+        </div>
+        
+        <div>
+            <a href="/" class="btn">返回首页</a>
+            <a href="/api/docs" class="btn">查看API文档</a>
+            <button onclick="copyToken()" class="btn btn-success" id="copyBtn" style="display: none;">复制令牌</button>
+        </div>
+    </div>
+
+    <script>
+        // 从URL参数获取用户信息
+        function getUrlParams() {
+            const params = new URLSearchParams(window.location.search);
+            return {
+                token: params.get('token'),
+                userId: params.get('user_id'),
+                username: params.get('username'),
+                email: params.get('email'),
+                loginMethod: params.get('login_method'),
+                code: params.get('code'),
+                state: params.get('state')
+            };
+        }
+        
+        // 显示成功状态
+        function showSuccess() {
+            document.querySelector('h2').textContent = '登录成功！';
+            document.querySelector('p').textContent = '欢迎使用图片转换服务';
+            document.getElementById('loadingStatus').style.display = 'none';
+            document.querySelector('.success-container').classList.add('show');
+        }
+        
+        // 显示错误信息
+        function showError(message) {
+            document.getElementById('errorMessage').textContent = message;
+            document.getElementById('errorInfo').style.display = 'block';
+            document.getElementById('loadingStatus').style.display = 'none';
+            document.querySelector('.success-container').classList.add('show');
+        }
+        
+        // 显示用户信息
+        function displayUserInfo(userData) {
+            if (userData.user) {
+                document.getElementById('userId').textContent = userData.user.id;
+                document.getElementById('username').textContent = userData.user.username;
+                document.getElementById('email').textContent = userData.user.email;
+                document.getElementById('loginMethod').textContent = 'Auth0 (Google)';
+                
+                if (userData.access_token) {
+                    document.getElementById('token').textContent = userData.access_token;
+                    document.getElementById('tokenInfo').style.display = 'block';
+                    document.getElementById('copyBtn').style.display = 'inline-block';
+                }
+            }
+        }
+        
+        // 自动调用 /complete-login 接口
+        async function autoCompleteLogin() {
+            const params = getUrlParams();
+            
+            // 如果URL中已经有token，说明是直接重定向过来的，直接显示
+            if (params.token && params.userId) {
+                console.log('检测到直接重定向，显示用户信息');
+                displayUserInfo({
+                    user: {
+                        id: params.userId,
+                        username: params.username,
+                        email: params.email
+                    },
+                    access_token: params.token
+                });
+                showSuccess();
+                return;
+            }
+            
+            // 如果有code和state，调用 /complete-login 接口
+            if (params.code && params.state) {
+                console.log('检测到Auth0回调，自动调用 /complete-login 接口');
+                console.log('Code:', params.code);
+                console.log('State:', params.state);
+                
+                try {
+                    document.getElementById('loadingText').textContent = '正在调用登录接口...';
+                    
+                    const response = await fetch('/api/auth/auth0/complete-login', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            code: params.code,
+                            state: params.state
+                        })
+                    });
+                    
+                    console.log('响应状态:', response.status);
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        console.log('登录成功:', data);
+                        
+                        // 显示用户信息
+                        displayUserInfo(data);
+                        showSuccess();
+                        
+                        // 保存token到localStorage
+                        if (data.access_token) {
+                            localStorage.setItem('auth_token', data.access_token);
+                            localStorage.setItem('user_info', JSON.stringify(data.user));
+                        }
+                    } else {
+                        const errorData = await response.json();
+                        console.error('登录失败:', errorData);
+                        showError(errorData.detail || '登录失败，请重试');
+                    }
+                } catch (error) {
+                    console.error('请求异常:', error);
+                    showError('网络错误，请检查连接后重试');
+                }
+            } else {
+                console.log('没有检测到登录参数');
+                showError('缺少必要的登录参数');
+            }
+        }
+        
+        // 复制令牌
+        function copyToken() {
+            const token = document.getElementById('token').textContent;
+            navigator.clipboard.writeText(token).then(() => {
+                alert('令牌已复制到剪贴板！');
+            }).catch(err => {
+                console.error('复制失败:', err);
+                alert('复制失败，请手动复制');
+            });
+        }
+        
+        // 页面加载时自动处理登录
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('页面加载完成，开始自动处理登录');
+            autoCompleteLogin();
+        });
+    </script>
+</body>
+</html>
