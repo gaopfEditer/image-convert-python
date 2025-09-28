@@ -132,7 +132,7 @@ class Auth0Service:
         is_new = False
         if not user:
             # 创建新用户
-            from schemas import UserCreate
+            from framework.schemas import UserCreate
             username = nickname or name or (email.split("@")[0] if email else f"auth0_{auth0_id}")
             user_data = UserCreate(
                 username=username,

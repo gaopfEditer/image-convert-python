@@ -3,7 +3,7 @@ from typing import Optional
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from tools.database.database import get_db
-from schemas import ImageConvertRequest, ConversionRecordResponse, MessageResponse, UsageStatsResponse, ImageConversionResponse, ImageInfo
+from framework.schemas import ImageConvertRequest, ConversionRecordResponse, MessageResponse, UsageStatsResponse, ImageConversionResponse, ImageInfo
 from services.image_service import ImageService
 from services.permission_service import PermissionService
 from services.user_service import UserService

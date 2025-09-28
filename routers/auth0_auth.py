@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from fastapi.responses import RedirectResponse, HTMLResponse
 from sqlalchemy.orm import Session
 from tools.database.database import get_db
-from schemas import Auth0LoginRequest, Auth0LoginResponse, Auth0LoginStatusResponse, Token, UserResponse, Auth0CallbackRequest
+from framework.schemas import Auth0LoginRequest, Auth0LoginResponse, Auth0LoginStatusResponse, Token, UserResponse, Auth0CallbackRequest
 from services.auth0_service import Auth0Service
 from auth import create_access_token
 from config import settings

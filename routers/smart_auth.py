@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from fastapi.responses import RedirectResponse, HTMLResponse
 from sqlalchemy.orm import Session
 from tools.database.database import get_db
-from schemas import SmartLoginResponse, WeChatLoginResponse, Auth0LoginResponse
+from framework.schemas import SmartLoginResponse, WeChatLoginResponse, Auth0LoginResponse
 from services.wechat_auth_service import WeChatAuthService
 from services.auth0_service import Auth0Service
 # GoogleAuthService已移除，使用Auth0Service替代

@@ -3,7 +3,7 @@ from sqlalchemy import and_, func
 from datetime import datetime, date
 from typing import Optional
 from models import User, DailyUsage, UserRole
-from schemas import UserCreate, UserUpdate, UsageStatsResponse
+from framework.schemas import UserCreate, UserUpdate, UsageStatsResponse
 from auth import get_password_hash, verify_password
 from config import settings
 

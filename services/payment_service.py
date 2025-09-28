@@ -7,7 +7,7 @@ from datetime import datetime
 from typing import Optional, Dict, Any
 from sqlalchemy.orm import Session
 from models import PaymentRecord, PaymentStatus, PaymentMethod, UserRole
-from schemas import PaymentCreate, PaymentResponse
+from framework.schemas import PaymentCreate, PaymentResponse
 from config import settings
 
 class PaymentService:

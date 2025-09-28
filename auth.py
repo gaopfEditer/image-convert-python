@@ -7,7 +7,7 @@ from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from tools.database.database import get_db
 from models import User
-from schemas import TokenData
+from framework.schemas import TokenData
 from config import settings
 
 # 密码加密上下文

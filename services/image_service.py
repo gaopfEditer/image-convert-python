@@ -4,7 +4,7 @@ from typing import Optional, Tuple
 from PIL import Image, ImageOps
 from sqlalchemy.orm import Session
 from models import ConversionRecord
-from schemas import ImageConvertRequest
+from framework.schemas import ImageConvertRequest
 from config import settings
 
 class ImageService:
